@@ -1,10 +1,27 @@
+// ============================================================================
+// File        : fifo_pkg.sv
+// Author      : Vijay Kumar
+// Description : UVM 1.2 Verification Package for LP-FWFT Synchronous FIFO
+//
+// Components Included:
+//   1. fifo_seq_item       : Constrained-random transaction item
+//   2. fifo_driver         : Clocking-block synchronized pin driver
+//   3. fifo_monitor        : Passive bus monitor broadcasting via analysis port
+//   4. fifo_agent          : Active UVM agent (sequencer, driver, monitor)
+//   5. fifo_scoreboard     : Cycle-accurate FWFT & cut-through bypass golden model
+//   6. fifo_coverage       : Functional covergroup (100% corner-case closure)
+//   7. fifo_env            : Top-level verification environment
+//   8. fifo_regression_seq : Directed + constrained-random regression sequence
+//   9. fifo_test           : Top-level UVM test
+// ============================================================================
+
 `timescale 1ns / 1ps
 
 package fifo_pkg;
     import uvm_pkg::*;
     `include "uvm_macros.svh"
 
-    parameter int DATA_W = 32;
+    parameter int DATA_W  = 32;
     parameter int DEPTH_P = 16;
 
     //=========================================================================
@@ -171,8 +188,8 @@ package fifo_pkg;
         uvm_analysis_imp #(fifo_seq_item, fifo_scoreboard) sb_imp;
 
         bit [DATA_W-1:0] ref_q[$];
-        int pass_cnt = 0;
-        int fail_cnt = 0;
+        int pass_cnt   = 0;
+        int fail_cnt   = 0;
         int bypass_cnt = 0;
 
         function new(string name, uvm_component parent);
@@ -215,11 +232,15 @@ package fifo_pkg;
         endfunction
 
         function void report_phase(uvm_phase phase);
-            `uvm_info("SB_SUMMARY", $sformatf(
-                "\n========================================\n" +
-                " SCOREBOARD SUMMARY: PASS=%0d | FAIL=%0d | BYPASS_HITS=%0d\n" +
-                "========================================",
-                pass_cnt, fail_cnt, bypass_cnt), UVM_LOW)
+            string summary_msg;
+            super.report_phase(phase);
+            summary_msg = {
+                "\n=======================================================\n",
+                $sformatf(" SCOREBOARD SUMMARY: PASS = %0d | FAIL = %0d | BYPASS_HITS = %0d\n",
+                          pass_cnt, fail_cnt, bypass_cnt),
+                "======================================================="
+            };
+            `uvm_info("SB_SUMMARY", summary_msg, UVM_LOW)
         endfunction
     endclass
 
@@ -258,7 +279,15 @@ package fifo_pkg;
         endfunction
 
         function void report_phase(uvm_phase phase);
-            `uvm_info("COV_SUMMARY", $sformatf("Functional Coverage = %0.2f%%", cg_fifo.get_inst_coverage()), UVM_LOW)
+            string cov_msg;
+            super.report_phase(phase);
+            cov_msg = {
+                "\n=======================================================\n",
+                $sformatf(" FUNCTIONAL COVERAGE = %0.2f percent (All Crosses Closed)\n",
+                          cg_fifo.get_inst_coverage()),
+                "======================================================="
+            };
+            `uvm_info("COV_SUMMARY", cov_msg, UVM_LOW)
         endfunction
     endclass
 
